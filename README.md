@@ -73,11 +73,15 @@
 ├── index.html              # 页面外壳 + 响应式样式 + 按序加载所有模块
 ├── manifest.json           # PWA manifest
 ├── icon.svg                # 图标
+├── package.json            # 仅用于 npm scripts（游戏本身零运行时依赖）
 ├── .github/workflows/
-│   ├── ci.yml              # CI：语法校验 + 冒烟测试
+│   ├── ci.yml              # CI：语法校验 + 冒烟测试 + 浏览器 E2E
 │   └── deploy.yml          # 自动发布到 GitHub Pages
+├── scripts/
+│   └── serve.mjs           # 零依赖静态服务器（本地预览）
 ├── test/
-│   └── smoke.mjs           # 零依赖冒烟测试（Node）
+│   ├── smoke.mjs           # 零依赖冒烟测试（Node）
+│   └── e2e.mjs             # Playwright 多视口 / 旋转方向验证
 └── src/
     ├── core/               # 基础设施
     │   ├── const.js        #   常量与调色板
@@ -122,14 +126,20 @@ start index.html         # Windows
 xdg-open index.html      # Linux
 
 # 方式二：起个本地服务器（推荐，PWA manifest 需 http 环境）
-python3 -m http.server 8080
+node scripts/serve.mjs 8080
 # → http://localhost:8080
 ```
 
 ### 跑测试
 
 ```bash
+# 冒烟测试（零依赖，CI 的主要门禁）
 node test/smoke.mjs
+
+# 浏览器 E2E（需要 Playwright；不装则自动跳过）
+npm install --no-save playwright
+npx playwright install chromium
+node test/e2e.mjs
 ```
 
 冒烟测试会按 `index.html` 的顺序逐个加载模块到一个 stub DOM 里，然后：
@@ -140,17 +150,27 @@ node test/smoke.mjs
 4. 渲染全部 5 个界面，统计绘制调用，确认没有异常
 5. 检查中文/拉丁字体度量
 
+E2E 会在 4 种视口（桌面 / 平板 / 手机 / 横屏手机）下验证：
+
+- 页面无 JS 报错
+- 画布缩放正确、完整落在视口内
+- 画面确实有像素内容（中文渲染没崩）
+- 横屏触发旋转、旋转后包围盒横向
+- **横屏两个方向（`orientation.angle` = 90 / 270）下画面上方都指向设备顶边**
+- 指针逆变换能把屏幕坐标正确还原成游戏坐标
+
+截图会输出到 `test/shots/`。
+
 ---
 
 ## 🚀 CI 与自动发布
 
 仓库里配了两条 GitHub Actions：
 
-**`ci.yml`** — 每次 push / PR 跑：
+**`ci.yml`** — 每次 push / PR 跑两个 job：
 
-- 对 `src/` 下所有 `.js` 执行 `node --check` 语法校验
-- 跑 `test/smoke.mjs` 冒烟测试
-- 校验 `index.html` 里引用的模块文件都真实存在
+- `check`：对 `src/` 下所有 `.js` 执行 `node --check` 语法校验 → 跑 `test/smoke.mjs` 冒烟测试 → 校验 `index.html` 里引用的模块文件都真实存在
+- `e2e`：装 Playwright + Chromium，跑 `test/e2e.mjs` 多视口 / 旋转方向验证，截图作为 artifact 上传
 
 **`deploy.yml`** — 推到 `main`（或 `master`）自动发布到 GitHub Pages：
 
@@ -171,6 +191,15 @@ node test/smoke.mjs
 **像素锐利的缩放** — 320×480 参考分辨率，按「设备像素」取整：让 `缩放系数 × dpr` 为整数，每个游戏像素恰好占整数个设备像素，边缘完全锐利、像素是方块。桌面 dpr=1 退回 4/3/2/1.5/1 阶梯。
 
 **中文清晰度** — 中文没法用点阵图集，于是走**超采样降采样**：字号 ×3 渲染 → 3×3 块求 alpha 平均得覆盖率 → 阈值化（≥12px 用 128，其余 112）→ `source-in` 合成上色。阈值后只写「全不透明白」和「全透明黑」两种状态，避开 Canvas 预乘 alpha 的 un-premultiply 陷阱。
+
+**横屏旋转方向** — 这里有个容易踩的坑：`screen.orientation.angle` 按规范是「屏幕相对自然方向**逆时针**旋转的角度」，而 CSS `rotate()` 正值是**顺时针**。两者方向相反，所以 CSS 角度必须取 `360 − angle`：
+
+| `orientation.angle` | 设备顶边位置 | CSS 旋转 |
+|---|---|---|
+| 90° | 屏幕左 | `rotate(270deg)` |
+| 270° | 屏幕右 | `rotate(90deg)` |
+
+取反了会导致画面上下颠倒。指针逆变换的符号也要跟着 CSS 角度走（`r = sin θ`，90° → +1，270° → −1），否则 270° 那侧点击位置会整体镜像错位。
 
 **弹道所见即所得** — 预览和飞行共用同一套固定步长积分（`RING_DT = 1/50`），所以瞄准线画到哪，烟圈就飞到哪。
 

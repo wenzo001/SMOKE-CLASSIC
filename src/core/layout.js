@@ -22,7 +22,7 @@
    4 / 3 / 2 / 1.5 / 1（1.5 是"填得更满"的折中，浏览器做最近邻
    放大，边缘依然硬，只是像素宽度不均匀）。
    ------------------------------------------------------------ */
-let LAYOUT_ROT = 0;         // 横屏旋转角度：0 / 90 / -90（度）
+let LAYOUT_ROT = 0;         // 横屏 CSS 旋转角度：0 / 90 / 270（度，顺时针语义）
 let LAYOUT_SCALE = 1;       // 当前 游戏像素 → CSS px 的倍率
 
 function isTouchDevice(){
@@ -48,11 +48,22 @@ function pickScale(sMax, touch){
    横屏（仅触屏设备）：机台整体旋转 90°，让竖版 320×480 的画面
    铺满宽屏。
 
-   旋转方向不靠猜，而是读设备上报的 screen.orientation.angle：
-     angle = 90  → 设备顺时针转了 90°，设备顶边在屏幕右侧
-     angle = 270 → 设备逆时针转了 90°，设备顶边在屏幕左侧
-   竖版内容要"看起来正"，就得让画面上方指向设备顶边所在的那一侧，
-   于是画面旋转角直接取 angle。
+   旋转方向要特别小心，两套角度的方向是相反的：
+
+     · screen.orientation.angle —— 规范定义是"屏幕相对自然方向
+       **逆时针**旋转的角度"。
+         angle = 90  → 设备逆时针转了 90°，设备顶边（听筒）在屏幕左侧
+         angle = 270 → 设备顺时针转了 90°，设备顶边在屏幕右侧
+
+     · CSS rotate(θ) —— θ 为正时是**顺时针**旋转（CSS 的 Y 轴朝下）。
+
+   我们要的效果是"画面上方始终指向设备的顶边"（内容贴在设备上，
+   用户顺着设备的方向歪头就能读）。所以 CSS 角度必须取
+   360 − angle，而不是直接用 angle：
+
+     angle = 90  → CSS rotate(270deg)   画面上方朝左（设备顶边在左）
+     angle = 270 → CSS rotate(90deg)    画面上方朝右（设备顶边在右）
+
    ------------------------------------------------------------ */
 const BEZEL_PAD = 20;          // #bezel 左右 padding 合计
 const STAGE_GAP = 10;          // #stage 内 flex gap
@@ -60,9 +71,12 @@ const STAGE_GAP = 10;          // #stage 内 flex gap
 function deviceAngle(){
   const o = window.screen && window.screen.orientation;
   if(o && typeof o.angle === 'number' && (o.angle === 90 || o.angle === 270)) return o.angle;
-  // 拿不到就按常见握法（home 键在右）取 90
+  // 拿不到就按常见握法（设备顶边在左）取 90
   return 90;
 }
+
+/* 设备角度（逆时针语义）→ CSS 旋转角（顺时针语义） */
+function cssAngleFor(angle){ return (360 - angle) % 360; }
 
 function layoutApply(){
   const stage = document.getElementById('stage');
@@ -73,7 +87,8 @@ function layoutApply(){
   const touch = isTouchDevice();
   const vw = window.innerWidth, vh = window.innerHeight;
   const landscape = vw > vh * 1.15;
-  const rot = touch && landscape ? deviceAngle() : 0;
+  // deviceAngle 是逆时针语义，这里转成 CSS 的顺时针角度
+  const rot = touch && landscape ? cssAngleFor(deviceAngle()) : 0;
 
   LAYOUT_ROT = rot;
   document.body.classList.toggle('rot', rot !== 0);
@@ -119,20 +134,27 @@ function layoutApply(){
 
    CSS rotate(θ) 在屏幕坐标（x 右、y 下）下为
        (dx, dy) → (dx·cosθ − dy·sinθ, dx·sinθ + dy·cosθ)
-   θ = ±90 时 cosθ = 0、sinθ = r（r = ±1），于是
-       (dx, dy) → (−r·dy, r·dx)
+   θ = ±90 时 cosθ = 0、sinθ = r（r = ±1），于是正向
+       screenX = −r·dy
+       screenY =  r·dx
    反解得
        dx =  r·(screenY − cy)
        dy = −r·(screenX − cx)
    再加回画布半宽/半高得到画布局部坐标，最后除以缩放倍率
    得到游戏像素坐标。
+
+   注意 r = sin(θ)：
+     θ = 90°  → r = +1
+     θ = 270° → r = −1
+   θ 取 90 还是 270 取决于设备是往哪边转的（见 cssAngleFor），
+   符号必须跟着 θ 走，否则 270° 那侧点击位置会整体镜像错位。
    ------------------------------------------------------------ */
 function pointerToGame(clientX, clientY){
   const r = cv.getBoundingClientRect();
   if(LAYOUT_ROT){
     const s = LAYOUT_SCALE;
     const cw = W * s, ch = H * s;
-    const rsign = LAYOUT_ROT > 0 ? 1 : -1;
+    const rsign = Math.round(Math.sin(LAYOUT_ROT * Math.PI / 180));   // +1 / −1
     // 旋转 ±90° 后，包围盒中心仍是画布的视觉中心
     const cx = r.left + r.width / 2;
     const cy = r.top  + r.height / 2;

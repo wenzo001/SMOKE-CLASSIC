@@ -50,3 +50,31 @@ jobs:
             fi
           done
           echo "✓ index.html 引用的模块全部存在"
+
+  e2e:
+    name: 真实浏览器双端适配验证
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装 Playwright 与 Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: E2E（桌面 / 平板 / 手机 / 横屏 + 旋转方向）
+        run: node test/e2e.mjs
+
+      - name: 上传截图
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-shots
+          path: test/shots/
+          if-no-files-found: ignore
