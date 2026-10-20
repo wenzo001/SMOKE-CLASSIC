@@ -3,7 +3,19 @@
 > 8-bit 像素风 · 抽烟主题 · 单局街机小游戏
 > **「闷」是抽烟的动作，也是无聊的意思——这游戏专治无聊。**
 
-纯前端、零依赖、零构建。克隆下来双击 `index.html` 就能玩。
+## 🌐 在线试玩
+
+**https://wenzo001.github.io/SMOKE-CLASSIC/**
+
+手机直接打开就能玩（横屏会自动旋转 90°）。桌面端用 Chrome / Edge / Firefox / Safari 均可。
+
+| | |
+|---|---|
+| 线上地址 | https://wenzo001.github.io/SMOKE-CLASSIC/ |
+| 源码仓库 | https://github.com/wenzo001/SMOKE-CLASSIC |
+| 部署方式 | GitHub Actions 自动发布（推 `main` 即上线） |
+
+纯前端、零依赖、零构建。克隆下来双击 `index.html` 也能玩。
 
 ---
 
@@ -189,13 +201,18 @@ E2E 会在 4 种视口（桌面 / 平板 / 手机 / 横屏手机）下验证：
 
 - 发布前先跑一遍冒烟测试，坏版本发不出去
 - 静态站点直接以仓库根目录作为 Pages 产物
-- 部署地址见 Actions 页面输出
+- 部署地址：**https://wenzo001.github.io/SMOKE-CLASSIC/**
 
 ### 启用 Pages
 
 1. 仓库 → **Settings** → **Pages**
 2. Source 选 **GitHub Actions**
 3. 推 `main` 分支即自动发布
+
+当前线上地址：**https://wenzo001.github.io/SMOKE-CLASSIC/**
+
+> ⚠️ 「配置 Pages」这一步失败，通常是 Source 没选 GitHub Actions（选了 "Deploy from a branch" 时
+> `configure-pages` 动作会直接报错）。改完 Source 重新推 `main` 即可。
 
 ---
 
