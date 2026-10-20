@@ -4,7 +4,6 @@
   "private": true,
   "description": "吞云 SMOKE CLASSIC — 8-bit 像素风抽烟主题街机小游戏（纯静态，零运行时依赖）",
   "license": "MIT",
-  "type": "module",
   "scripts": {
     "test": "node test/smoke.mjs",
     "test:e2e": "node test/e2e.mjs",
