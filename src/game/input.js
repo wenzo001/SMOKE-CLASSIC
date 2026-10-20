@@ -46,6 +46,8 @@ function menuKey(k){
   const s = curScreen();
   const items = menuItems(s);
   if(k==='r' && (s===SCR.RESULT || s===SCR.PAUSE)){ SFX.select(); startGame(); return; }
+  // 暂停界面再按 P / Esc 继续游戏
+  if((k==='p'||k==='P') && s===SCR.PAUSE){ SFX.back(); pop(); return; }
   if(k==='ArrowUp'||k==='w'){ menuSel[s] = (menuSel[s]-1+items.length)%items.length; SFX.ui(); }
   else if(k==='ArrowDown'||k==='s'){ menuSel[s] = (menuSel[s]+1)%items.length; SFX.ui(); }
   else if(k===' '||k==='Enter'){ SFX.select(); items[menuSel[s]].act(); }

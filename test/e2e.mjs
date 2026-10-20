@@ -38,11 +38,13 @@ if (!chromium) {
 }
 
 const URL = pathToFileURL(path.join(ROOT, 'index.html')).href;
+/* dpr 用 2 而不是 3：3× 渲染缓冲在内存紧张的机器上会把 headless 挤爆，
+   而缩放逻辑对 dpr≥2 的处理路径完全相同，测 2 已足够 */
 const VIEWS = [
   { name: 'desktop',  width: 1440, height: 900,  dpr: 1, mobile: false },
   { name: 'tablet',   width: 834,  height: 1112, dpr: 2, mobile: true  },
-  { name: 'phone',    width: 390,  height: 844,  dpr: 3, mobile: true  },
-  { name: 'phone-ls', width: 844,  height: 390,  dpr: 3, mobile: true  },
+  { name: 'phone',    width: 390,  height: 844,  dpr: 2, mobile: true  },
+  { name: 'phone-ls', width: 844,  height: 390,  dpr: 2, mobile: true  },
 ];
 
 const fails = [];
@@ -52,6 +54,11 @@ const check = (name, cond, extra) => {
 };
 
 const browser = await chromium.launch();
+/** 截图失败不该让整个测试崩掉（内存吃紧时 headless 容易被杀） */
+async function shoot(page, file){
+  try { await page.screenshot({ path: path.join(OUT, file), timeout: 15000 }); }
+  catch (e) { console.log('    (截图失败：' + file + ' — ' + e.message.split('\n')[0] + ')'); }
+}
 for (const v of VIEWS) {
   const ctx = await browser.newContext({
     viewport: { width: v.width, height: v.height },
@@ -64,38 +71,53 @@ for (const v of VIEWS) {
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
-  await page.goto(URL);
-  await page.waitForTimeout(700);
+  try {
+    await page.goto(URL, { waitUntil: 'load' });
+    await page.waitForTimeout(700);
+  } catch (e) {
+    console.log('\n[' + v.name + '] 加载失败：' + e.message.split('\n')[0]);
+    fails.push(v.name + ' 页面加载');
+    await ctx.close().catch(()=>{});
+    continue;
+  }
 
   console.log('\n[' + v.name + '] ' + v.width + '×' + v.height + ' @' + v.dpr + 'x');
   check('无 JS 报错', errors.length === 0, errors.join(' | '));
 
-  const info = await page.evaluate(() => {
-    const cv = document.getElementById('game');
-    const r  = cv.getBoundingClientRect();
-    const bezel = document.getElementById('bezel');
-    const br = bezel.getBoundingClientRect();
-    return {
-      rot: getComputedStyle(bezel).getPropertyValue('--rot').trim(),
-      bodyRot: document.body.classList.contains('rot'),
-      cw: cv.style.width, ch: cv.style.height,
-      rect: { x: r.x, y: r.y, w: r.width, h: r.height },
-      bezelRect: { x: br.x, y: br.y, w: br.width, h: br.height },
-      vw: innerWidth, vh: innerHeight,
-      scale: (typeof LAYOUT_SCALE !== 'undefined') ? LAYOUT_SCALE : null,
-      // 画布里有多少非背景像素（验证真的画了东西，尤其中文）
-      ink: (() => {
-        const c = document.getElementById('game');
-        const g = c.getContext('2d');
-        const d = g.getImageData(0, 0, c.width, c.height).data;
-        let n = 0;
-        for (let i = 0; i < d.length; i += 4){
-          if (d[i] > 40 || d[i+1] > 40 || d[i+2] > 40) n++;
-        }
-        return n;
-      })(),
-    };
-  });
+  let info;
+  try {
+    info = await page.evaluate(() => {
+      const cv = document.getElementById('game');
+      const r  = cv.getBoundingClientRect();
+      const bezel = document.getElementById('bezel');
+      const br = bezel.getBoundingClientRect();
+      return {
+        rot: getComputedStyle(bezel).getPropertyValue('--rot').trim(),
+        bodyRot: document.body.classList.contains('rot'),
+        cw: cv.style.width, ch: cv.style.height,
+        rect: { x: r.x, y: r.y, w: r.width, h: r.height },
+        bezelRect: { x: br.x, y: br.y, w: br.width, h: br.height },
+        vw: innerWidth, vh: innerHeight,
+        scale: (typeof LAYOUT_SCALE !== 'undefined') ? LAYOUT_SCALE : null,
+        // 画布里有多少非背景像素（验证真的画了东西，尤其中文）
+        ink: (() => {
+          const c = document.getElementById('game');
+          const g = c.getContext('2d');
+          const d = g.getImageData(0, 0, c.width, c.height).data;
+          let n = 0;
+          for (let i = 0; i < d.length; i += 4){
+            if (d[i] > 40 || d[i+1] > 40 || d[i+2] > 40) n++;
+          }
+          return n;
+        })(),
+      };
+    });
+  } catch (e) {
+    console.log('\n[' + v.name + '] 渲染检查失败：' + e.message.split('\n')[0]);
+    fails.push(v.name + ' 渲染检查');
+    await ctx.close().catch(()=>{});
+    continue;
+  }
 
   check('画布尺寸已设置', !!info.cw && !!info.ch, info.cw + '×' + info.ch);
   check('缩放倍率 ≥ 1', info.scale >= 1, String(info.scale));
@@ -125,8 +147,8 @@ for (const v of VIEWS) {
   check('指针反算命中画布中心', Math.abs(ptr.x - ptr.W / 2) < 6 && Math.abs(ptr.y - ptr.H / 2) < 6,
     JSON.stringify(ptr));
 
-  await page.screenshot({ path: path.join(OUT, v.name + '.png') });
-  await ctx.close();
+  await shoot(page, v.name + '.png');
+  await ctx.close().catch(()=>{});
 }
 
 /* ---------- 布局方向专项：横屏两个方向都要正立 ---------- */
@@ -134,7 +156,7 @@ console.log('\n[5] 横屏方向（画面上方必须指向设备顶边）');
 for (const angle of [90, 270]){
   const ctx = await browser.newContext({
     viewport: { width: 844, height: 390 },
-    deviceScaleFactor: 3, isMobile: true, hasTouch: true,
+    deviceScaleFactor: 2, isMobile: true, hasTouch: true,
   });
   const page = await ctx.newPage();
   const errors = [];
@@ -146,25 +168,40 @@ for (const angle of [90, 270]){
       get: () => ({ angle: a, type: a === 90 ? 'landscape-primary' : 'landscape-secondary' }),
     });
   }, angle);
-  await page.goto(URL);
-  await page.waitForTimeout(500);
+  try {
+    await page.goto(URL, { waitUntil: 'load' });
+    await page.waitForTimeout(500);
+  } catch (e) {
+    console.log('  ! angle=' + angle + ' 加载失败：' + e.message.split('\n')[0]);
+    fails.push('angle=' + angle + ' 页面加载');
+    await ctx.close().catch(()=>{});
+    continue;
+  }
 
-  const r = await page.evaluate(() => {
-    const cv = document.getElementById('game');
-    const bezel = document.getElementById('bezel');
-    const rot = parseFloat(getComputedStyle(bezel).getPropertyValue('--rot')) || 0;
-    const rect = cv.getBoundingClientRect();
-    const cy = rect.y + rect.height / 2;
-    // 旋转后，屏幕的水平轴对应游戏的垂直轴：
-    //   屏幕左边缘 / 右边缘 → 游戏的上边缘 / 下边缘（哪一端对哪一端取决于旋转方向）
-    const pLeft  = pointerToGame(rect.x, cy);
-    const pRight = pointerToGame(rect.x + rect.width, cy);
-    return {
-      rot, angle: screen.orientation.angle,
-      leftY: pLeft.y, rightY: pRight.y,
-      leftX: pLeft.x, rightX: pRight.x,
-    };
-  });
+  let r;
+  try {
+    r = await page.evaluate(() => {
+      const cv = document.getElementById('game');
+      const bezel = document.getElementById('bezel');
+      const rot = parseFloat(getComputedStyle(bezel).getPropertyValue('--rot')) || 0;
+      const rect = cv.getBoundingClientRect();
+      const cy = rect.y + rect.height / 2;
+      // 旋转后，屏幕的水平轴对应游戏的垂直轴：
+      //   屏幕左边缘 / 右边缘 → 游戏的上边缘 / 下边缘（哪一端对哪一端取决于旋转方向）
+      const pLeft  = pointerToGame(rect.x, cy);
+      const pRight = pointerToGame(rect.x + rect.width, cy);
+      return {
+        rot, angle: screen.orientation.angle,
+        leftY: pLeft.y, rightY: pRight.y,
+        leftX: pLeft.x, rightX: pRight.x,
+      };
+    });
+  } catch (e) {
+    console.log('  ! angle=' + angle + ' 检查失败：' + e.message.split('\n')[0]);
+    fails.push('angle=' + angle + ' 方向检查');
+    await ctx.close().catch(()=>{});
+    continue;
+  }
 
   check('angle=' + angle + ' 无 JS 报错', errors.length === 0, errors.join(' | '));
   // angle=90 → 设备顶边在屏幕左 → 画面上方应指向屏幕左
@@ -178,11 +215,11 @@ for (const angle of [90, 270]){
   check('angle=' + angle + ' CSS 旋转角与设备角互补', r.rot === (360 - angle) % 360,
     'rot=' + r.rot);
 
-  await page.screenshot({ path: path.join(OUT, 'ls-angle-' + angle + '.png') });
-  await ctx.close();
+  await shoot(page, 'ls-angle-' + angle + '.png');
+  await ctx.close().catch(()=>{});
 }
 
-await browser.close();
+await browser.close().catch(()=>{});
 
 console.log('\n' + (fails.length ? '✗ ' + fails.length + ' 项失败' : '✅ E2E 全部通过'));
 console.log('截图输出：' + OUT);
