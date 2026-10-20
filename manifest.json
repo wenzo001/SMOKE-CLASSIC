@@ -1,7 +1,7 @@
 {
-  "name": "吞云 · SMOKE CLASSIC",
-  "short_name": "吞云",
-  "description": "8-bit 像素风抽烟主题街机小游戏：点火、吸气、吐烟圈。",
+  "name": "闷 · SMOKE CLASSIC",
+  "short_name": "闷",
+  "description": "8-bit 像素风抽烟主题街机小游戏：一根烟三口气，专治无聊。",
   "lang": "zh-CN",
   "start_url": "./index.html",
   "scope": "./",

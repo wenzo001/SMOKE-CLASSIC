@@ -190,6 +190,7 @@ function drawText(str, x, y, opt){
       const idx = FONT_IDX[run[i]];
       if(idx !== undefined) ctx.drawImage(atlas, idx*5, 0, 5, 7, runX+i*6*sc, y+off, 5*sc, 7*sc);
     }
+    runX += run.length*6*sc;                     // 关键：ASCII 段画完要推进画笔
     run='';
   };
   for(const ch of str){

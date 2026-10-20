@@ -2,7 +2,7 @@
   "name": "smoke-classic",
   "version": "1.0.0",
   "private": true,
-  "description": "吞云 SMOKE CLASSIC — 8-bit 像素风抽烟主题街机小游戏（纯静态，零运行时依赖）",
+  "description": "闷 SMOKE CLASSIC — 8-bit 像素风抽烟主题街机小游戏（纯静态，零运行时依赖）",
   "license": "MIT",
   "scripts": {
     "test": "node test/smoke.mjs",

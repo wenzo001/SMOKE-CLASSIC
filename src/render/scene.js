@@ -28,6 +28,9 @@ function renderGame(){
   if(G.over) drawOver();
   if(G.flash>0){ ctx.globalAlpha=clamp(G.flash,0,1); rect(0,0,W,H,G.flashCol); ctx.globalAlpha=1; }
 }
+/* withHint=false 时不画底部提示条 —— 暂停/结算页有自己的提示文案，
+   不关掉的话两行字会叠在同一个 y 上。 */
+let NO_HINT = false;                 // 由 main.js 的 render() 设置
 function drawHUD(){
   const S_ = SET.bigText;
   // 顶栏
@@ -76,6 +79,7 @@ function drawHUD(){
   if(danger) text('!', lx+6, ly+lh+2, {size:14, color:C.red, align:'center'});
 }
 function drawHint(s){
+  if(NO_HINT) return;                       // 暂停/结算时底下已有自己的提示文案
   const y = 452;
   rect(0, 440, W, 22, 'rgba(12,9,22,.75)');
   textFit(s, W/2, y, {size: SET.bigText?14:12, color:C.dim, align:'center'});

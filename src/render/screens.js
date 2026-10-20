@@ -48,7 +48,7 @@ function codexMaxScroll(){
   if(codexTab===0) return Math.max(0, BRANDS.length-4);
   if(codexTab===1) return Math.max(0, TARGETS.length-5);
   if(codexTab===2) return Math.max(0, KNOWLEDGE.length-4);
-  if(codexTab===3) return 5;      // 玩法页 27 行，可滚动 5
+  if(codexTab===3) return Math.max(0, HELP_LINES.length - HELP_VISIBLE);
   return 0;
 }
 function hitUI(x,y){
@@ -67,15 +67,42 @@ function drawTitle(){
   ctx.globalAlpha=1;
   drawCigarette(286, 366, 0.22, true);
   drawSprite('flame1', 282, 350);
-  // 标题
-  const t = 1 + Math.sin(G.t*2)*0.02;
+
+  /* ------------------------------------------------------------
+     标题：单字《闷》做成"印章 + 街机框"
+     ------------------------------------------------------------
+     《闷》是双关——既是抽烟的动作（"闷一口"），也是无聊的意思
+     （"闷得慌"）。它既是名字，也是这游戏要治的病。
+
+     单字撑不起原来"吞云"的双字结构，于是给它一个框：
+     外框金色（街机厅招牌感），内层微光，四角做像素角标，
+     整体随呼吸缩放。字比框大一圈，像压在招牌上。
+
+     右侧挂一枚小红印"解闷"——把双关当场点破，
+     免得新玩家只看到一个不知所谓的字。
+     ------------------------------------------------------------ */
+  const t = 1 + Math.sin(G.t*2)*0.018;
   ctx.save();
-  ctx.translate(160, 96); ctx.scale(t,t); ctx.translate(-160,-96);
-  text('吞云', 160, 78, {size:30, color:C.gold, align:'center'});
+  ctx.translate(160, 76); ctx.scale(t,t); ctx.translate(-160,-76);
+  // 外框 + 内框（框宽收到 56，贴合 50px 字的视觉宽度）
+  rect(132, 34, 56, 84, 'rgba(255,212,71,.07)');
+  frameRect(132, 34, 56, 84, C.gold2);
+  frameRect(135, 37, 50, 78, 'rgba(255,212,71,.28)');
+  // 四角像素角标
+  rect(132,34,3,3,C.gold); rect(185,34,3,3,C.gold);
+  rect(132,115,3,3,C.gold); rect(185,115,3,3,C.gold);
+  // 字（50px 渲染；y 往下挪是因为中文字体 ascent 有留白，否则视觉偏上）
+  text('闷', 160, 46, {size:50, color:C.gold, align:'center'});
+  // 右侧小红印：解 / 闷
+  rect(196, 52, 36, 48, '#a8322c');
+  frameRect(196, 52, 36, 48, C.gold2);
+  text('解', 214, 55, {size:14, color:C.paper, align:'center'});
+  text('闷', 214, 76, {size:14, color:C.paper, align:'center'});
   ctx.restore();
-  rect(96, 120, 128, 1, C.gold2);
-  drawText('SMOKE CLASSIC', 160, 128, {size:14, color:C.cyan});
-  text('一 根 烟 · 三 口 气', 160, 150, {size:12, color:C.dim, align:'center'});
+
+  rect(80, 124, 160, 1, C.gold2);
+  drawText('SMOKE CLASSIC', 160, 132, {size:14, color:C.cyan, align:'center'});
+  text('一 根 烟 · 三 口 气', 160, 154, {size:12, color:C.dim, align:'center'});
   // 菜单
   const items = menuItems(SCR.TITLE);
   const bx=58, bw=204, bh=32, by=176;
@@ -181,6 +208,7 @@ function drawResult(){
     text((sel?'▶ ':'  ')+it.label, 160-bw/2+16, y+6, {size:14, color: sel?C.gold:C.txt});
     uiHits.push({x:160-bw/2,y,w:bw,h:24,i});
   });
+  // 提示放在 y=452（底层 HUD 的阶段提示条已被 NO_HINT 关掉，不会撞字）
   textFit('空格 / R = 立刻再来一根', 160, 452, {size:12, color:C.dim, align:'center'});
 }
 function drawSettings(){
@@ -271,38 +299,48 @@ function codexKnow(){
     wrapText(k.c, 30, y+30, 260, 12, 3);
   });
 }
+/* 玩法说明页的内容（模块级，滚动上限由它算出，避免手写行数失同步） */
+const HELP_LINES = [
+  ['为什么叫"闷"', C.gold],
+  ['这游戏是给排队、通勤、摸鱼时无聊的人', C.txt],
+  ['做的。"闷"是抽烟的动作，也是无聊的意思', C.dim],
+  ['——名字就是它要治的病。', C.txt],
+  ['玩法：一根烟，三段考校', C.gold],
+  ['每根烟都要依次完成三步，手上功夫全靠这', C.txt],
+  ['三步，缺一不可。', C.dim],
+  ['① 点：火苗在滑轨上来回跑，对准烟头按', C.txt],
+  ['　 空格/点击。压在金区里算完美点火。', C.dim],
+  ['② 吸：按住不放，横条往右涨，松手时', C.txt],
+  ['　 落进绿区。吸太猛会呛到，肺负担 +9。', C.dim],
+  ['③ 吐：拖动瞄准，按住蓄力，松手吐烟圈，', C.txt],
+  ['　 套住靶子得分。', C.dim],
+  ['计分与上头', C.gold],
+  ['连击越高倍率越高（最高 x3.00），任何失', C.txt],
+  ['误都会清零。', C.dim],
+  ['三段全完美 = "完美一根"，额外大奖。', C.txt],
+  ['HUD 上的三格金条就是当前链。', C.dim],
+  ['难度递增', C.gold],
+  ['第 1 根是"新手"：火苗慢、绿区宽、靶子大。', C.txt],
+  ['越往后火苗越快、绿区越窄、靶子越小越会', C.txt],
+  ['动、还可能起风。肺负担也越抽越重。', C.dim],
+  ['肺到 100 本局结束，所以单局有天然长度。', C.txt],
+  ['操作', C.gold],
+  ['键盘：空格/回车 操作，方向键瞄准，', C.txt],
+  ['P 暂停，R 重开。', C.dim],
+  ['手机：点按/长按/拖动，屏上也有暂停键。', C.txt],
+  ['', C.txt]
+];
+const HELP_VISIBLE = 22;         // 一屏能显示的行数
+const HELP_LINE_H = 16;          // 行高：22 行 × 16 = 352，从 y=48 排到 400，留在面板内
 function codexHelp(){
-  const lines = [
-    ['玩法：一根烟，三段考校', C.gold],
-    ['每根烟都要依次完成三步，手上功夫全靠这',
-     C.txt],
-    ['三步，缺一不可。', C.dim],
-    ['① 点：火苗在滑轨上来回跑，对准烟头按', C.txt],
-    ['　 空格/点击。压在金区里算完美点火。', C.dim],
-    ['② 吸：按住不放，横条往右涨，松手时', C.txt],
-    ['　 落进绿区。吸太猛会呛到，肺负担 +9。', C.dim],
-    ['③ 吐：拖动瞄准，按住蓄力，松手吐烟圈，', C.txt],
-    ['　 套住靶子得分。', C.dim],
-    ['计分与上头', C.gold],
-    ['连击越高倍率越高（最高 x3.00），任何失', C.txt],
-    ['误都会清零。', C.dim],
-    ['三段全完美 = "完美一根"，额外大奖。', C.txt],
-    ['HUD 上的三格金条就是当前链。', C.dim],
-    ['难度递增', C.gold],
-    ['第 1 根是"新手"：火苗慢、绿区宽、靶子大。', C.txt],
-    ['越往后火苗越快、绿区越窄、靶子越小越会', C.txt],
-    ['动、还可能起风。肺负担也越抽越重。', C.dim],
-    ['肺到 100 本局结束，所以单局有天然长度。', C.txt],
-    ['操作', C.gold],
-    ['键盘：空格/回车 操作，方向键瞄准，', C.txt],
-    ['P 暂停，R 重开。', C.dim],
-    ['手机：点按/长按/拖动，屏上也有暂停键。', C.txt],
-    ['', C.txt]
-  ];
-  const scroll = clamp(codexScroll, 0, Math.max(0, lines.length-22));
-  lines.forEach((l,i)=>{ if(i<scroll) return; text(l[0], 24, 48+(i-scroll)*17, {size:12, color:l[1]}); });
+  const lines = HELP_LINES;
+  const scroll = clamp(codexScroll, 0, Math.max(0, lines.length-HELP_VISIBLE));
+  lines.forEach((l,i)=>{
+    if(i<scroll || i>=scroll+HELP_VISIBLE) return;   // 必须同时裁上下界
+    text(l[0], 24, 48+(i-scroll)*HELP_LINE_H, {size:12, color:l[1]});
+  });
   if(scroll > 0) text('▲', 292, 44, {size:12, color:C.dim2, align:'right'});
-  if(scroll < lines.length-22) text('▼', 292, 432, {size:12, color:C.dim2, align:'right'});
+  if(scroll < lines.length-HELP_VISIBLE) text('▼', 292, 432, {size:12, color:C.dim2, align:'right'});
 }
 function wrapText(str, x, y, maxW, size, maxLines){
   const chars = Array.from(str);

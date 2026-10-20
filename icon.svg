@@ -3,12 +3,18 @@
   <!-- 机台边框 -->
   <rect x="6" y="4" width="52" height="56" fill="#241d3a"/>
   <rect x="8" y="6" width="48" height="52" fill="#1d1830"/>
+  <!-- 金色描边：呼应标题画面的"招牌框" -->
+  <rect x="8" y="6" width="48" height="1" fill="#ffb020"/>
+  <rect x="8" y="57" width="48" height="1" fill="#ffb020"/>
+  <rect x="8" y="6" width="1" height="52" fill="#ffb020"/>
+  <rect x="55" y="6" width="1" height="52" fill="#ffb020"/>
   <!-- 烟卷 -->
   <rect x="20" y="40" width="24" height="6" fill="#f4f0e6"/>
   <rect x="20" y="46" width="24" height="4" fill="#c3bca9"/>
   <rect x="38" y="40" width="6" height="10" fill="#c3bca9"/>
   <!-- 火星 -->
   <rect x="41" y="38" width="3" height="2" fill="#ff8a3d"/>
+  <rect x="42" y="35" width="1" height="2" fill="#ffe66d"/>
   <!-- 烟圈 -->
   <rect x="24" y="26" width="16" height="2" fill="#c9c1dc"/>
   <rect x="22" y="24" width="2" height="6" fill="#c9c1dc"/>
@@ -18,6 +24,6 @@
   <rect x="30" y="14" width="4" height="4" fill="#6f6695"/>
   <rect x="33" y="9" width="3" height="3" fill="#4b3f7d"/>
   <!-- 金色点缀 -->
-  <rect x="10" y="10" width="2" height="2" fill="#ffd447"/>
-  <rect x="52" y="14" width="2" height="2" fill="#ffd447"/>
+  <rect x="12" y="12" width="2" height="2" fill="#ffd447"/>
+  <rect x="50" y="14" width="2" height="2" fill="#ffd447"/>
 </svg>

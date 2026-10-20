@@ -125,7 +125,7 @@ for (const s of srcs) {
 /* ---------- 导出关键符号（顶层 const/let 不会挂到 globalThis） ---------- */
 const EXPORTS = [
   'W','H','C','TIERS','BRANDS','TARGETS','KNOWLEDGE','SCR','G','stack','push','pop','curScreen',
-  'measureText','startGame','doLight','releaseInhale','fireRing','update','render',
+  'measureText','startGame','doLight','releaseInhale','fireRing','update','render','text',
   'SET','BEST','STATS','TOP','LAST','HUD','bus','syncHud','layoutApply','LAYOUT_SCALE','LAYOUT_ROT',
   'isTouchDevice','pointerToGame','gameOver','addScore',
 ];
@@ -219,6 +219,37 @@ console.log('\n[5] 字体');
 const w1 = g.measureText('一', 12), w2 = g.measureText('一二', 12);
 check('中文字宽随字数增长', w2 > w1, w1 + ' → ' + w2);
 check('拉丁与中文混合度量正常', g.measureText('OK 一', 12) > g.measureText('OK', 12));
+
+/* 混排推进回归：drawText 里 ASCII 段画完后必须推进画笔，
+   否则 ASCII 之后的中文会叠在 ASCII 上（"x3.00），" 这类会糊成一团）。
+   做法：劫持 ctx.drawImage，只记录"落在目标 y 上的"调用（即文字本体，
+   排除 getCjk 内部掩码/上色的中间绘制），验证落点 x 严格递增。 */
+console.log('\n[6] 中英混排排版');
+{
+  const placed = [];
+  const cv = sandbox.document.getElementById('game');
+  const c = cv.getContext('2d');
+  const real = c.drawImage;
+  c.drawImage = function(){
+    const a = arguments;
+    // 文字本体的落点位置随调用形式不同：
+    //   ASCII: drawImage(atlas, sx, sy, sw, sh, dx, dy, dw, dh) -> a[5]
+    //   CJK  : drawImage(canvas, dx, dy)                        -> a[1]
+    // getCjk 内部的中间绘制落点恒为 0，用 dx>0 排除
+    let dx = null;
+    if (a.length === 3) dx = a[1];
+    else if (a.length >= 9) dx = a[5];
+    if (typeof dx === 'number' && dx > 0) placed.push(dx);
+    return real.apply(null, a);
+  };
+  g.text('连击 x3.00），共', 10, 10, {size:12});
+  c.drawImage = real;
+
+  const xs = placed;
+  let increasing = true;
+  for (let i = 1; i < xs.length; i++) if (xs[i] <= xs[i-1]) { increasing = false; break; }
+  check('各段 x 坐标严格递增（画笔正确推进）', increasing, xs.join(','));
+}
 
 /* ---------- 汇总 ---------- */
 console.log('\n' + (fails.length ? '✗ ' + fails.length + ' 项失败' : '✅ 冒烟测试全部通过'));

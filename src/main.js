@@ -16,8 +16,9 @@ function render(){
   else if(s===SCR.CODEX)   drawCodex();
   else if(s===SCR.SETTINGS) drawSettings();
   else if(s===SCR.GAME)   renderGame();
-  else if(s===SCR.PAUSE){ renderGame(); drawPause(); }
-  else if(s===SCR.RESULT){ renderGame(); drawResult(); }
+  else if(s===SCR.PAUSE){ NO_HINT = true; renderGame(); drawPause(); }
+  else if(s===SCR.RESULT){ NO_HINT = true; renderGame(); drawResult(); }
+  NO_HINT = false;
   scanlines();
 }
 function resize(){
