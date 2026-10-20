@@ -1,0 +1,51 @@
+# ---- WorkBuddy 本地数据（项目记忆等，不入库）----
+.workbuddy/
+
+# ---- 依赖 / 构建产物 ----
+node_modules/
+.pnpm-store/
+*.tgz
+dist/
+build/
+out/
+.cache/
+.vite/
+.turbo/
+
+# ---- 临时实验目录 ----
+.fontlab/
+.tmp/
+tmp/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 编辑器 / IDE ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ---- 本地环境与密钥 ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# ---- 测试 / 覆盖率 ----
+coverage/
+.nyc_output/
+test-results/
+playwright-report/

@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: 语法校验 + 冒烟测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 校验所有模块语法
+        run: |
+          set -e
+          fail=0
+          for f in $(find src -name '*.js' | sort); do
+            if node --check "$f"; then
+              echo "  ✓ $f"
+            else
+              echo "  ✗ $f"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: 冒烟测试（无依赖）
+        run: node test/smoke.mjs
+
+      - name: 校验 index.html 引用的模块都存在
+        run: |
+          set -e
+          grep -o 'src="[^"]*\.js"' index.html | sed 's/src="//;s/"//' | while read -r f; do
+            if [ ! -f "$f" ]; then
+              echo "✗ index.html 引用了不存在的文件: $f"
+              exit 1
+            fi
+          done
+          echo "✓ index.html 引用的模块全部存在"

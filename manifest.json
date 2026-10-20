@@ -1,0 +1,20 @@
+{
+  "name": "吞云 · SMOKE CLASSIC",
+  "short_name": "吞云",
+  "description": "8-bit 像素风抽烟主题街机小游戏：点火、吸气、吐烟圈。",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#07060d",
+  "theme_color": "#0b0912",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
