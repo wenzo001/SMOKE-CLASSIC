@@ -21,6 +21,9 @@ const G = {
   t:0, phaseT:0,
   score:0, combo:0, bestCombo:0, level:1, lung:0, cigs:0,
   perfects:0, attempts:0, chain:0, bestChain:0, tier:0,
+  chokes:0, perfectCigs:0,          // 单局目标统计
+  special:null,                     // 当前特殊烟（null = 普通烟）
+  goal:null, goalDone:false, goalBonus:0,
   brand:null, cigCount:{},
   light:{x:0,dir:1,target:160,zone:22,track0:40,track1:280,speed:100,lit:false},
   inhale:{v:0,holding:false,lo:55,hi:85,drift:0,driftAmp:0,choked:false},
@@ -32,8 +35,8 @@ const G = {
 };
 const TIERS = [
   {name:'新手',  min:1,  color:'#6bd97a'},
-  {name:'熟手',  min:4,  color:'#5ec8e8'},
-  {name:'老炮',  min:8,  color:'#ffd447'},
+  {name:'熟手',  min:5,  color:'#5ec8e8'},
+  {name:'老炮',  min:9,  color:'#ffd447'},
   {name:'传说',  min:13, color:'#e2574c'}
 ];
 function tierOf(level){

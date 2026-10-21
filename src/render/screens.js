@@ -119,12 +119,26 @@ function drawTitle(){
   text('最高分', 160, 344, {size:12, color:C.dim2, align:'center'});
   drawText(String(BEST), 160, 359, {size:14, color:C.gold, align:'center'});
   // 累计统计
-  text('累计 '+STATS.cigs+' 根 · '+STATS.runs+' 局', 160, 380, {size:12, color:C.dim2, align:'center'});
-  // 底部说明
-  textFit('空格 / 点击 开始', 160, 402, {size:12, color:C.dim, align:'center'});
-  rect(0, 424, W, 1, 'rgba(120,90,200,.25)');
-  textFit('吸烟有害健康 · 本作仅为文化梗娱乐', 160, 434, {size:12, color:'#5a527a', align:'center'});
-  textFit('像素致敬经典街机 · 不含任何烟草广告', 160, 450, {size:12, color:'#4b4468', align:'center'});
+  // 解闷等级：长期目标直接亮在标题页
+  {
+    const ti = titleOf(STATS.cigs), next = titleNext(STATS.cigs);
+    text(TITLES[ti].n, 160, 364, {size:13, color:C.gold, align:'center'});
+    text('累计 '+STATS.cigs+' 根 · '+STATS.runs+' 局', 160, 380, {size:11, color:C.dim2, align:'center'});
+    if(next > 0){
+      const cur = TITLES[ti].c, nxt = TITLES[ti+1].c;
+      const prog = clamp((STATS.cigs-cur)/(nxt-cur), 0, 1);
+      rect(60, 394, 200, 4, '#241d3a');
+      rect(60, 394, Math.round(200*prog), 4, C.gold2);
+      textFit('再 '+next+' 根 → '+TITLES[ti+1].n, 160, 402, {size:10, color:C.dim2, align:'center'});
+    } else {
+      textFit('已满级 · 无聊终结者', 160, 402, {size:10, color:C.gold2, align:'center'});
+    }
+  }
+  // 底部说明（整体下移，给上面的称号进度条让位）
+  textFit('空格 / 点击 开始', 160, 420, {size:11, color:C.dim, align:'center'});
+  rect(0, 434, W, 1, 'rgba(120,90,200,.25)');
+  textFit('吸烟有害健康 · 本作仅为文化梗娱乐', 160, 440, {size:11, color:'#5a527a', align:'center'});
+  textFit('像素致敬经典街机 · 不含任何烟草广告', 160, 456, {size:11, color:'#4b4468', align:'center'});
 }
 function drawPause(){
   ctx.globalAlpha=0.72; rect(0,0,W,H,'#07060d'); ctx.globalAlpha=1;
@@ -156,21 +170,32 @@ function drawResult(){
   const rows = [
     ['抽了', G.cigs+' 根'],
     ['最高连击', 'x'+(1+0.25*Math.min(G.bestCombo,8)).toFixed(2)],
-    ['完美一根', G.bestChain>=3 ? '达成' : '未达成'],
+    ['完美一根', G.perfectCigs>=1 ? '达成 ×'+G.perfectCigs : '未达成'],
     ['完美率', G.attempts?Math.round(G.perfects/Math.max(1,G.attempts)*100)+'%':'—'],
     ['评价', rank]
   ];
   rows.forEach((r,i)=>{
     const y = 120+i*18;
     text(r[0], 44, y, {size:12, color:C.dim2});
-    text(r[1], 276, y, {size:12, color: i===4?C.gold : (i===2 && G.bestChain>=3?C.gold:C.txt), align:'right'});
+    text(r[1], 276, y, {size:12, color: i===4?C.gold : (i===2 && G.perfectCigs>=1?C.gold:C.txt), align:'right'});
   });
   rect(40,214,240,1,'rgba(120,90,200,.3)');
 
+  // 本局目标：达成高亮，未达成也不骂人，只告诉你差多少
+  if(G.goal){
+    const ok = G.goalDone;
+    text('目标', 44, 222, {size:12, color:C.dim2});
+    textFit(G.goal.name+' · '+G.goal.desc, 150, 222, {size:12, color: ok?C.gold:C.dim, align:'center'});
+    text(ok ? '达成 +'+G.goalBonus : '未达成', 276, 222, {size:12,
+      color: ok?C.gold:C.dim2, align:'right'});
+    if(ok){ rect(40,218,240,18,'rgba(255,212,71,.10)'); }
+  }
+  rect(40,246,240,1,'rgba(120,90,200,.3)');
+
   // 抽过的牌子
   const names = Object.keys(G.cigCount).sort((a,b)=>G.cigCount[b]-G.cigCount[a]);
-  text('抽过', 44, 222, {size:12, color:C.dim2});
-  if(!names.length) text('——', 276, 222, {size:12, color:C.dim, align:'right'});
+  text('抽过', 44, 254, {size:12, color:C.dim2});
+  if(!names.length) text('——', 276, 254, {size:12, color:C.dim, align:'right'});
   else{
     let x = 44, row = 0, shown = 0;
     for(let i=0;i<names.length;i++){
@@ -179,37 +204,52 @@ function drawResult(){
       const label = n + '×' + G.cigCount[n];
       const w = measureText(label,12)+10;
       if(x + w > 286){ row++; x = 44; if(row > 1) break; }
-      const y = 238 + row*18;
+      const y = 270 + row*18;
       rect(x, y, w, 15, '#1a1630'); frameRect(x,y,w,15,b?b.color:C.edge);
       text(label, x+w/2, y+1, {size:12, color:C.txt, align:'center'});
       x += w+5; shown++;
     }
-    if(shown < names.length) text('+'+(names.length-shown), Math.min(x+2, 284), 238, {size:12, color:C.dim2});
+    if(shown < names.length) text('+'+(names.length-shown), Math.min(x+2, 284), 270, {size:12, color:C.dim2});
   }
   // 排行榜（前 3）
-  rect(40,278,240,1,'rgba(120,90,200,.3)');
-  text('本机排行', 44, 286, {size:12, color:C.dim2});
-  if(!TOP.length) text('还没有记录', 276, 286, {size:12, color:C.dim, align:'right'});
+  rect(40,312,240,1,'rgba(120,90,200,.3)');
+  text('本机排行', 44, 320, {size:12, color:C.dim2});
+  if(!TOP.length) text('还没有记录', 276, 320, {size:12, color:C.dim, align:'right'});
   else TOP.slice(0,3).forEach((r,i)=>{
-    const y = 302+i*17;
+    const y = 336+i*15;
     const mine = r.s === G.score && r.c === G.cigs;
     text((i+1)+'.', 44, y, {size:12, color: i===0?C.gold:C.dim2});
     drawText(String(r.s), 66, y, {size:12, color: mine?C.gold:C.txt});
     text(r.c+' 根', 276, y, {size:12, color: mine?C.gold:C.dim, align:'right'});
   });
-  // 按钮
+  // 解闷等级：累计根数 → 称号，附带"距下一级还差几根"的进度条
+  const total = STATS.cigs;
+  const ti = titleOf(total);
+  const next = titleNext(total);
+  text(TITLES[ti].n, 44, 384, {size:12, color:C.gold});
+  if(next > 0){
+    const cur = TITLES[ti].c, nxt = TITLES[ti+1].c;
+    text('还差 '+next+' 根', 276, 384, {size:11, color:C.dim2, align:'right'});
+    const bx=44, bw2=200, prog = clamp((total-cur)/(nxt-cur), 0, 1);
+    rect(bx, 398, bw2, 5, '#241d3a');
+    rect(bx, 398, Math.round(bw2*prog), 5, C.gold2);
+  } else {
+    text('已满级', 276, 384, {size:11, color:C.gold2, align:'right'});
+  }
+
+  // 按钮（3 项收在 408~466，底部提示 470 不越界）
   const items = menuItems(SCR.RESULT);
-  const bw=180, bh=30, by=356;
+  const bw=180, bh=20, by=408;
   uiHits=[];
   items.forEach((it,i)=>{
     const y = by + i*bh;
     const sel = menuSel.result===i;
-    if(sel){ rect(160-bw/2, y, bw, 24, 'rgba(107,217,122,.13)'); frameRect(160-bw/2,y,bw,24,C.edge3); }
-    text((sel?'▶ ':'  ')+it.label, 160-bw/2+16, y+6, {size:14, color: sel?C.gold:C.txt});
-    uiHits.push({x:160-bw/2,y,w:bw,h:24,i});
+    if(sel){ rect(160-bw/2, y, bw, 17, 'rgba(107,217,122,.13)'); frameRect(160-bw/2,y,bw,17,C.edge3); }
+    text((sel?'▶ ':'  ')+it.label, 160-bw/2+16, y+2, {size:12, color: sel?C.gold:C.txt});
+    uiHits.push({x:160-bw/2,y,w:bw,h:17,i});
   });
-  // 提示放在 y=452（底层 HUD 的阶段提示条已被 NO_HINT 关掉，不会撞字）
-  textFit('空格 / R = 立刻再来一根', 160, 452, {size:12, color:C.dim, align:'center'});
+  // 底部提示（底层 HUD 阶段提示条已被 NO_HINT 关掉，不会撞字）
+  textFit('空格 / R = 立刻再来一根', 160, 466, {size:11, color:C.dim, align:'center'});
 }
 function drawSettings(){
   drawBackdrop(G.t);
@@ -324,6 +364,17 @@ const HELP_LINES = [
   ['越往后火苗越快、绿区越窄、靶子越小越会', C.txt],
   ['动、还可能起风。肺负担也越抽越重。', C.dim],
   ['肺到 100 本局结束，所以单局有天然长度。', C.txt],
+  ['每根都不一样', C.gold],
+  ['约每 4 根有 1 根是特殊烟：细支金区更宽、', C.txt],
+  ['薄荷绿区会跳舞、雪茄高风险高回报、茶烟低', C.dim],
+  ['害低分、老炮存货全段加难。求稳还是求分，', C.txt],
+  ['你自己定。', C.dim],
+  ['解闷等级', C.gold],
+  ['累计抽烟根数换称号：排队见习 → 通勤老手', C.txt],
+  ['→ 摸鱼大师 → 休息区之王 → 解闷传说 → 无', C.dim],
+  ['聊终结者（500 根）。', C.txt],
+  ['每局开局抽一个目标（零呛咳 / 3 次完美一', C.txt],
+  ['根 / 抽满 12 根 / 8000 分），达成有奖励分。', C.dim],
   ['操作', C.gold],
   ['键盘：空格/回车 操作，方向键瞄准，', C.txt],
   ['P 暂停，R 重开。', C.dim],

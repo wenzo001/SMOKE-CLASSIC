@@ -63,6 +63,18 @@ function drawHUD(){
     }
   }
   if(HUD.brand) text(HUD.brand, 288, 21, {size:12, color:C.dim, align:'right'});
+  // 特殊烟标识：品牌名下方一条彩条 + 名字，让玩家一眼看出"这根不一样"
+  if(G.special){
+    const sp = G.special;
+    const snw = measureText(sp.name, 11);
+    rect(288-snw, 34, snw, 13, 'rgba(0,0,0,.35)');
+    rect(288-snw, 46, snw, 2, sp.col);
+    text(sp.name, 288, 35, {size:11, color:sp.col, align:'right'});
+  }
+  // 单局目标：肺条下方，一句话说清这局在追什么
+  if(G.goal && !G.over){
+    text('目标 '+G.goal.desc, 160, 436, {size:11, color:C.dim2, align:'center'});
+  }
   // 肺负载：右侧竖条（不挡场地）
   const lx=304, ly=52, lh=236;
   text('肺', lx+6, ly-16, {size:12, color:C.dim2, align:'center'});
