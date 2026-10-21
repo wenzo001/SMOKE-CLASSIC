@@ -14,7 +14,7 @@ const DEF_SET = { sound:true, shake:true, flash:true, guide:true, bigText:true }
 let SET = Object.assign({}, DEF_SET);
 let BEST = 0, seenBrands = {}, seenTargets = {};
 let TOP = [];                       // 本地排行榜（前 5）
-let STATS = { runs:0, cigs:0, bestCombo:0 };   // 累计统计
+let STATS = { runs:0, cigs:0, bestCombo:0, lastPlay:0 };   // 累计统计
 let LAST = 0;                      // 上一局得分
 try{
   const raw = localStorage.getItem('smoke_classic_v1');
@@ -25,7 +25,7 @@ try{
     seenBrands = o.seenBrands||{};
     seenTargets = o.seenTargets||{};
     TOP = o.top||[];
-    STATS = Object.assign({runs:0,cigs:0,bestCombo:0}, o.stats||{});
+    STATS = Object.assign({runs:0,cigs:0,bestCombo:0,lastPlay:0}, o.stats||{});
     LAST = o.last||0;
   }
 }catch(e){}

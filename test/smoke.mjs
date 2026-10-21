@@ -127,7 +127,7 @@ const EXPORTS = [
   'W','H','C','TIERS','BRANDS','TARGETS','KNOWLEDGE','SCR','G','stack','push','pop','curScreen',
   'measureText','startGame','doLight','releaseInhale','fireRing','update','render','text',
   'SET','BEST','STATS','TOP','LAST','HUD','bus','syncHud','layoutApply','LAYOUT_SCALE','LAYOUT_ROT',
-  'isTouchDevice','pointerToGame','gameOver','addScore',
+  'isTouchDevice','pointerToGame','gameOver','addScore','welcomeBack','TITLES','titleOf','titleNext','GOALS','SPECIAL_CIGS',
 ];
 try {
   vm.runInContext(
@@ -271,6 +271,45 @@ console.log('\n[7] 事件卡（必须玩家主动操作才继续）');
   g.G.eventT = 99;
   g.update(1/60);
   check('点击后事件卡消失', g.G.pendingEvent === null);
+}
+
+/* ---------- 8. 回归诱惑文案 ---------- */
+console.log('\n[8] 回归诱惑文案（按"多久没来"分档）');
+{
+  const DAY = 86400000, now = Date.now();
+  const set = st => {
+    vm.runInContext('STATS.runs=' + st.runs + '; STATS.cigs=' + st.cigs +
+      '; STATS.lastPlay=' + st.lp + '; BEST=' + st.best + '; LAST=' + st.last + ';', ctxObj);
+  };
+  // 纯新玩家：不显示
+  set({runs:0, cigs:0, lp:0, best:0, last:0});
+  check('新玩家不显示回归文案', g.welcomeBack() === null);
+  // 老存档（无 lastPlay）：平滑升级
+  set({runs:12, cigs:98, lp:0, best:5200, last:4800});
+  check('老存档无 lastPlay 也有文案', !!g.welcomeBack());
+  // 30 分钟内
+  set({runs:3, cigs:31, lp:now-5*60000, best:3200, last:1500});
+  check('30 分钟内 → "手还没热"', /手还没热/.test(g.welcomeBack().t));
+  // 当天多局
+  set({runs:7, cigs:60, lp:now-3*3600000, best:4200, last:3900});
+  check('当天多局 → 报"今天第 N 局"', /今天第 7 局/.test(g.welcomeBack().t));
+  // 跨天 → 破纪录诱惑优先
+  set({runs:9, cigs:80, lp:now-2*DAY, best:4200, last:4000});
+  check('跨天且接近纪录 → 报分差', /离纪录只差 200 分/.test(g.welcomeBack().t));
+  // 戒烟天数换算
+  set({runs:8, cigs:70, lp:now-6.4*DAY, best:4200, last:3000});
+  check('跨天 6 天 → "戒烟 6 天"', /戒烟 6 天/.test(g.welcomeBack().t));
+  // 老烟枪资历
+  set({runs:20, cigs:137, lp:now-9*DAY, best:6100, last:5100});
+  check('累计过百 → 老烟枪档案', /老烟枪档案/.test(g.welcomeBack().t));
+  // 极端：很久没来
+  set({runs:5, cigs:40, lp:now-200*DAY, best:3000, last:2000});
+  check('200 天 → "验收"', /验收/.test(g.welcomeBack().t));
+  // 标题页渲染不炸
+  g.__stackSet([g.SCR.TITLE]);
+  let ok = true;
+  try { g.render(); } catch(e){ ok = false; }
+  check('标题页带文案渲染正常', ok);
 }
 
 /* ---------- 汇总 ---------- */

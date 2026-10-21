@@ -24,6 +24,7 @@ function startGame(){
   G.shake=0; G.freeze=0; G.flash=0;
   // 抽一个本局目标（开局前就告诉你追什么）
   G.goal = GOALS[Math.floor(Math.random()*GOALS.length)];
+  STATS.lastPlay = Date.now();                 // 首页"戒烟 N 天"文案的数据源
   newCigarette();
   save();                                          // 图鉴解锁进度落盘
 }

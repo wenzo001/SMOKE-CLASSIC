@@ -55,6 +55,50 @@ function hitUI(x,y){
   for(const h of uiHits){ if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h) return h.i; }
   return -1;
 }
+/* ------------------------------------------------------------
+   回归诱惑文案 —— 有历史记录的玩家才显示
+   ------------------------------------------------------------
+   把"多久没来玩游戏"换算成"戒烟多少天"——这是这个游戏自带的
+   黑色幽默：不抽烟的日子，按戒烟算。
+
+   分档依据（按优先级）：
+     1) 破纪录诱惑：离纪录越近，钩子越硬（最强"再来一局"动机）
+     2) 老烟枪资历：累计根数是谈资
+     3) 按间隔时长：越久越要用"验收""破例"这种词挑逗
+
+   hot=1 的文案会呼吸闪烁，制造"它在催你"的感觉。
+
+   返回 null = 纯新玩家，标题页不显示这一行。
+   ------------------------------------------------------------ */
+function welcomeBack(){
+  // 平滑升级：老存档没有 lastPlay，但有成绩 → 给一句通用回归
+  if(!STATS.lastPlay){
+    if(STATS.runs > 0 || BEST > 0) return {t:'老玩家，回来续上了', c:C.cyan, hot:0};
+    return null;
+  }
+  const gap  = Date.now() - STATS.lastPlay;
+  const mins = gap / 60000, days = gap / 86400000;
+  const d    = Math.round(days);
+
+  // 当天还在玩 → 先报"今天第几局"（连续玩的时候这才是玩家关心的），
+  // 破纪录诱惑留给隔天再来的场景
+  if(mins < 30)  return {t:'手还没热呢，再来一根？', c:C.cyan, hot:0};
+  if(days < 1){
+    if(STATS.runs >= 5) return {t:'今天第 '+STATS.runs+' 局，你是真闷', c:C.cyan, hot:0};
+    return {t:'今天第 '+STATS.runs+' 局，不差这一根', c:C.cyan, hot:0};
+  }
+  // 破天了 → 破纪录诱惑优先（最强的"再来一局"钩子）
+  if(LAST > 0 && LAST >= BEST)       return {t:'上局 '+LAST+' 分就是纪录，还能更高？', c:C.gold, hot:1};
+  if(LAST > 0 && BEST - LAST <= 300) return {t:'离纪录只差 '+(BEST-LAST)+' 分，就一口', c:C.gold, hot:1};
+  if(days < 2)   return {t:'歇了一天，手生了没', c:C.green, hot:0};
+  // 老烟枪资历（跨天 + 累计过百才拿出来说）
+  if(STATS.cigs >= 100) return {t:'老烟枪档案：累计 '+STATS.cigs+' 根，歇 '+d+' 天了', c:C.gold, hot:1};
+  if(days < 4)   return {t:'戒烟 '+d+' 天了，想抽不', c:C.green, hot:1};
+  if(days < 8)   return {t:'戒烟 '+d+' 天，你现在来了', c:C.gold, hot:1};
+  if(days < 30)  return {t:'都 '+d+' 天没碰了，今天破例？', c:C.gold, hot:1};
+  if(days < 120) return {t:'戒烟 '+d+' 天，烟瘾还在吗', c:C.red, hot:1};
+  return {t:'戒烟 '+d+' 天了，今天是来验收的吗', c:C.red, hot:1};
+}
 function drawTitle(){
   drawBackdrop(G.t);
   // 右下角：燃烧的烟 + 上升烟雾（不压住菜单）
@@ -115,30 +159,45 @@ function drawTitle(){
     text((sel?'▶ ':'  ')+it.label, bx+14, y+7, {size:14, color: sel?C.gold:C.txt});
     uiHits.push({x:bx,y,w:bw,h:26,i});
   });
-  // 最高分
-  text('最高分', 160, 344, {size:12, color:C.dim2, align:'center'});
-  drawText(String(BEST), 160, 359, {size:14, color:C.gold, align:'center'});
-  // 累计统计
-  // 解闷等级：长期目标直接亮在标题页
+  /* ------------------------------------------------------------
+     数据区（340 起，到 424 让给底部提示）
+     ------------------------------------------------------------
+     行1 最高分 + 上局（合并一行，省空间）
+     行2 称号（金色）
+     行3 进度条 + 累计统计
+     行4 回归诱惑文案（新玩家没有，位置留空）
+     ------------------------------------------------------------ */
+  textFit('最高分 '+BEST+(LAST>0 ? ' · 上局 '+LAST : ''), 160, 340,
+    {size:12, color:C.dim2, align:'center'});
+  // 解闷等级
   {
     const ti = titleOf(STATS.cigs), next = titleNext(STATS.cigs);
-    text(TITLES[ti].n, 160, 358, {size:13, color:C.gold, align:'center'});
-    text('累计 '+STATS.cigs+' 根 · '+STATS.runs+' 局', 160, 374, {size:11, color:C.dim2, align:'center'});
-    if(next > 0){
-      const cur = TITLES[ti].c, nxt = TITLES[ti+1].c;
-      const prog = clamp((STATS.cigs-cur)/(nxt-cur), 0, 1);
-      rect(60, 388, 200, 4, '#241d3a');
-      rect(60, 388, Math.round(200*prog), 4, C.gold2);
-      textFit('再 '+next+' 根 → '+TITLES[ti+1].n, 160, 396, {size:10, color:C.dim2, align:'center'});
-    } else {
-      textFit('已满级 · 无聊终结者', 160, 396, {size:10, color:C.gold2, align:'center'});
-    }
+    text(TITLES[ti].n, 160, 362, {size:13, color:C.gold, align:'center'});
+    const cur = TITLES[ti].c, nxt = next > 0 ? TITLES[ti+1].c : TITLES[ti].c;
+    const prog = next > 0 ? clamp((STATS.cigs-cur)/(nxt-cur), 0, 1) : 1;
+    rect(60, 384, 200, 4, '#241d3a');
+    rect(60, 384, Math.round(200*prog), 4, C.gold2);
+    textFit('累计 '+STATS.cigs+' 根 · '+STATS.runs+' 局'+
+      (next > 0 ? ' · 再 '+next+' 根 → '+TITLES[ti+1].n : ' · 已满级'),
+      160, 392, {size:10, color:C.dim2, align:'center'});
   }
-  // 底部说明（整体下移，给上面的称号进度条让位）
-  textFit('空格 / 点击 开始', 160, 424, {size:11, color:C.dim, align:'center'});
-  rect(0, 440, W, 1, 'rgba(120,90,200,.25)');
-  textFit('吸烟有害健康 · 本作仅为文化梗娱乐', 160, 448, {size:11, color:'#5a527a', align:'center'});
-  textFit('像素致敬经典街机 · 不含任何烟草广告', 160, 456, {size:11, color:'#4b4468', align:'center'});
+  // 回归诱惑文案：有历史记录才出现，hot 文案呼吸闪烁
+  const wb = welcomeBack();
+  if(wb){
+    const a = wb.hot ? 0.6 + 0.4*Math.sin(G.t*3.4) : 1;
+    ctx.globalAlpha = a;
+    // 小卡片：左侧彩条标语气，右侧渐隐，和上面的数据行拉开 8px
+    rect(34, 412, 252, 22, 'rgba(255,255,255,.05)');
+    frameRect(34, 412, 252, 22, 'rgba(255,255,255,.07)');
+    rect(34, 412, 3, 22, wb.c);
+    textFit('» '+wb.t, 46, 417, {size:11, color:wb.c, maxW:232});
+    ctx.globalAlpha = 1;
+  }
+  // 底部说明
+  textFit('空格 / 点击 开始', 160, 434, {size:11, color:C.dim, align:'center'});
+  rect(0, 448, W, 1, 'rgba(120,90,200,.25)');
+  textFit('吸烟有害健康 · 仅为文化梗娱乐 · 不含任何烟草广告', 160, 456,
+    {size:10, color:'#5a527a', align:'center'});
 }
 function drawPause(){
   ctx.globalAlpha=0.72; rect(0,0,W,H,'#07060d'); ctx.globalAlpha=1;
