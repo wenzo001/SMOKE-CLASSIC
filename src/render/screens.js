@@ -122,22 +122,22 @@ function drawTitle(){
   // 解闷等级：长期目标直接亮在标题页
   {
     const ti = titleOf(STATS.cigs), next = titleNext(STATS.cigs);
-    text(TITLES[ti].n, 160, 364, {size:13, color:C.gold, align:'center'});
-    text('累计 '+STATS.cigs+' 根 · '+STATS.runs+' 局', 160, 380, {size:11, color:C.dim2, align:'center'});
+    text(TITLES[ti].n, 160, 358, {size:13, color:C.gold, align:'center'});
+    text('累计 '+STATS.cigs+' 根 · '+STATS.runs+' 局', 160, 374, {size:11, color:C.dim2, align:'center'});
     if(next > 0){
       const cur = TITLES[ti].c, nxt = TITLES[ti+1].c;
       const prog = clamp((STATS.cigs-cur)/(nxt-cur), 0, 1);
-      rect(60, 394, 200, 4, '#241d3a');
-      rect(60, 394, Math.round(200*prog), 4, C.gold2);
-      textFit('再 '+next+' 根 → '+TITLES[ti+1].n, 160, 402, {size:10, color:C.dim2, align:'center'});
+      rect(60, 388, 200, 4, '#241d3a');
+      rect(60, 388, Math.round(200*prog), 4, C.gold2);
+      textFit('再 '+next+' 根 → '+TITLES[ti+1].n, 160, 396, {size:10, color:C.dim2, align:'center'});
     } else {
-      textFit('已满级 · 无聊终结者', 160, 402, {size:10, color:C.gold2, align:'center'});
+      textFit('已满级 · 无聊终结者', 160, 396, {size:10, color:C.gold2, align:'center'});
     }
   }
   // 底部说明（整体下移，给上面的称号进度条让位）
-  textFit('空格 / 点击 开始', 160, 420, {size:11, color:C.dim, align:'center'});
-  rect(0, 434, W, 1, 'rgba(120,90,200,.25)');
-  textFit('吸烟有害健康 · 本作仅为文化梗娱乐', 160, 440, {size:11, color:'#5a527a', align:'center'});
+  textFit('空格 / 点击 开始', 160, 424, {size:11, color:C.dim, align:'center'});
+  rect(0, 440, W, 1, 'rgba(120,90,200,.25)');
+  textFit('吸烟有害健康 · 本作仅为文化梗娱乐', 160, 448, {size:11, color:'#5a527a', align:'center'});
   textFit('像素致敬经典街机 · 不含任何烟草广告', 160, 456, {size:11, color:'#4b4468', align:'center'});
 }
 function drawPause(){

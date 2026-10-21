@@ -301,7 +301,12 @@ function drawEventCard(){
     text(ch.t, cx+cw/2, y+73, {size:12, color:ch.c, align:'center'});
     cx += cw + gap;
   }
-  text('点击跳过', W/2, y+88, {size:10, color:C.dim2, align:'center'});}
+  // 提示：闪烁 + 说清两种操作方式（不再自动跳过，必须玩家动手）
+  const blink = 0.55 + 0.45*Math.sin(G.t*4.5);
+  ctx.globalAlpha = blink;
+  text('点击 / 按空格 继续', W/2, y+88, {size:10, color:C.dim, align:'center'});
+  ctx.globalAlpha = 1;
+}
 function drawOver(){
   const k = clamp(G.overT*1.6,0,1);
   ctx.globalAlpha = k*0.55;

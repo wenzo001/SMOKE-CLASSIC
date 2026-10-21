@@ -20,6 +20,8 @@ window.addEventListener('keydown', e=>{
   if(s===SCR.GAME){
     if(k==='p'||k==='Escape'){ if(curScreen()!==SCR.PAUSE){ push(SCR.PAUSE); SFX.back(); } return; }
     if(k==='r'){ startGame(); SFX.select(); return; }
+    // 事件卡：任何操作键都跳过（卡上写着"点击跳过"，就该是点击才跳）
+    if(G.pendingEvent){ G.eventT = 99; SFX.ui(); return; }
     if(k===' '||k==='Enter'){
       if(G.phase==='light') doLight();
       else if(G.phase==='inhale'){ G.inhale.holding = true; SFX.inhaleStart(); }

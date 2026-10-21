@@ -175,6 +175,9 @@ console.log('\n[3] 模拟一局');
 const before = g.G.score;
 let guard = 0;
 while(!g.G.over && guard++ < 3000){
+  // 事件卡现在必须玩家主动操作才继续（不再自动倒计时），
+  // 模拟循环里替"玩家"点一下
+  if (g.G.pendingEvent) g.G.eventT = 99;
   const ph = g.G.phase;
   if (ph === 'light'){
     // 把滑块直接挪到金区正中，制造「完美点火」
@@ -249,6 +252,25 @@ console.log('\n[6] 中英混排排版');
   let increasing = true;
   for (let i = 1; i < xs.length; i++) if (xs[i] <= xs[i-1]) { increasing = false; break; }
   check('各段 x 坐标严格递增（画笔正确推进）', increasing, xs.join(','));
+}
+
+/* ---------- 7. 事件卡不自动跳过 ---------- */
+console.log('\n[7] 事件卡（必须玩家主动操作才继续）');
+{
+  g.__stackSet([g.SCR.GAME]);
+  g.startGame();
+  // 手动激活一张事件卡
+  vm.runInContext('G.pendingEvent = {t:"被查岗", d:"测试卡", s:0, l:9, w:7, luck:0}; G.eventT = 0;', ctxObj);
+  const cigsBefore = g.G.cigs;
+  // 空转 10 秒模拟时间，卡片应该还在、游戏不该推进
+  for (let i = 0; i < 600; i++) g.update(1/60);
+  check('10 秒不操作，事件卡不消失', g.G.pendingEvent !== null);
+  check('事件卡期间游戏不推进', g.G.cigs === cigsBefore,
+    cigsBefore + ' → ' + g.G.cigs);
+  // 模拟玩家点击
+  g.G.eventT = 99;
+  g.update(1/60);
+  check('点击后事件卡消失', g.G.pendingEvent === null);
 }
 
 /* ---------- 汇总 ---------- */

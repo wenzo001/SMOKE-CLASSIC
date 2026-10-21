@@ -31,19 +31,20 @@ function update(dt){
     const f=G.fx[i]; f.t+=dt; f.y -= 26*dt;
     if(f.t>=f.dur) G.fx.splice(i,1);
   }
-  // 事件卡
+  // 事件卡 —— 不自动跳过，等玩家点/按键
+  // （旧版 G.eventT>2.4 强制结算：卡上写着"点击跳过"，实际到点就没了，
+  //   玩家根本没读完。现在 eventT 只驱动入场动画，结算只认主动操作。）
   if(curScreen()!==SCR.GAME) return;
-  if(G.pendingEvent){
-    G.eventT += dt;
-    if(G.eventT>2.4){
-      const e = G.pendingEvent; G.pendingEvent=null; G.eventT=-1;
-      G.score = Math.max(0, G.score + e.s);
-      G.lung = clamp(G.lung + e.l, 0, 100);
-      syncHud();
-      if(G.lung>=100){ gameOver(); return; }
-      newCigarette();
-    }
+  if(G.pendingEvent && G.eventT > 2.4){
+    const e = G.pendingEvent; G.pendingEvent=null; G.eventT=-1;
+    G.score = Math.max(0, G.score + e.s);
+    G.lung = clamp(G.lung + e.l, 0, 100);
+    syncHud();
+    if(G.lung>=100){ gameOver(); return; }
+    newCigarette();
   }
+  // 事件卡激活时冻结后续逻辑：玩家必须先处理这张卡
+  if(G.pendingEvent) return;
   // 阶段切换计时器（不用 setTimeout，避免暂停/重开时穿透）
   if(G.pending){
     G.pending.t -= dt;
@@ -110,16 +111,18 @@ function update(dt){
           r.alive=false; E.over=true;
           const perfect = d < T.r*0.62;
           if(perfect){
-            addScore(260, T.x, T.y-18, C.gold, true);
+            addScore(260, T.x, T.y-10, C.gold, false, true);
             G.combo++; G.perfects++; bumpChain();
             burst(T.x,T.y,24,C.gold,130); addTrauma(0.6); hitStop(0.07); flash('#ffd447',0.5);
-            popText(T.x, T.y-26, '正中靶心！', C.gold, true);
+            popText(T.x, T.y-42, '正中靶心！', C.gold, true);
+            popText(T.x, T.y-10, '+260', C.gold, false);
             SFX.hit();
           } else {
-            addScore(110, T.x, T.y-18, C.green, false);
+            addScore(110, T.x, T.y-10, C.green, false, true);
             G.combo++;
             burst(T.x,T.y,12,C.green,80); addTrauma(0.3); SFX.near();
-            popText(T.x, T.y-24, '命中', C.green);
+            popText(T.x, T.y-38, '命中', C.green, false);
+            popText(T.x, T.y-10, '+110', C.green, false);
           }
           syncHud();
           G.pending = { kind:'endCig', t:0.72 };
